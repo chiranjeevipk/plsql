@@ -1,0 +1,70 @@
+create table agency_src		
+(agency varchar(20),		
+program_name varchar(20),		
+fiscal_year int,		
+original_appr_amount numeric);	
+drop table agency_tgt;
+create table agency_tgt	
+(agency varchar(20),	
+program_name varchar(20),	
+fiscal_year int,	
+Original_appr_amount numeric,	
+program_amount numeric,	
+agency_amount numeric,	
+total_amount numeric);	
+
+insert into agency_src values('Education','High School Grant',2005,350000);
+insert into agency_src values('Education',	'Middle School Grant',2005,50000);
+insert into agency_src values('Education','High School Grant',2004,250000);
+insert into agency_src values('DEP','Air',2005,50000);
+insert into agency_src values('DEP','Air',2004,60000);
+insert into agency_src values('DEP','Water',2005,70000);
+commit;
+
+select * from agency_src;
+
+
+create or replace procedure sp_agency as
+cursor cur_src is
+    select * from agency_src;
+cursor cur_pronm  is 
+    select sum(original_appr_amount)as proamt,program_name
+    from agency_src
+    group by program_name;
+cursor cur_agency is select sum(original_appr_amount) as agamt,agency 
+    from agency_src
+    group by agency;
+        v_tat number;
+        v_count number;
+begin
+    for i in cur_src loop
+        select sum(original_appr_amount) into v_tat
+        from agency_src;
+            select count(*) into v_count
+            from agency_tgt
+            where agency=i.agency and i.program_name=i.program_name and fiscal_year=i.fiscal_year;
+        if v_count=0 then
+            insert into agency_tgt values(i.agency,i.program_name,i.fiscal_year,i.original_appr_amount,null,null,v_tat);
+        end if;
+    end loop;
+   
+    for i in cur_pronm loop
+        if v_count=0 then
+            update agency_tgt set program_amount=i.proamt
+            where program_name=i.program_name;
+        end if;
+    end loop;
+        for i in cur_agency loop
+            if v_count=0 then
+                update agency_tgt set agency_amount=i.agamt
+                where agency=i.agency;
+            end if;
+        end loop;
+end;
+
+    exec sp_agency;
+    
+    select * from cur_src;
+    
+select * from agency_tgt;
+truncate  table agency_tgt;
