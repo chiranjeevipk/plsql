@@ -1,0 +1,48 @@
+
+-----varience student  table---
+select st_id,st_name,marks,high_marks,low_marks,a.low_marks-marks,a.high_marks-marks
+from (select max(marks) as high_marks,min(marks) as low_marks
+        from source_data)a,source_data ;
+
+-----agency source table-----
+
+select d.agency,d.program_name,d.fiscal_year,d.original_appr_amount,a_tat,p_tat,tat
+from(select sum(original_appr_amount) as a_tat,agency
+        from agency_src
+        group by agency)a,
+    (select sum(original_appr_amount)as p_tat,program_name
+    from agency_src
+    group by program_name)b,
+    (select sum(original_appr_amount)as tat
+    from agency_src)c,agency_src d
+    where a.agency=d.agency and b.program_name=d.program_name;
+
+--- specification_mix (moisture) table sql query-----
+
+select specification_mix,actual_value,case when specification_mix like 'Ash%' then actual_value
+else 0
+end ash_val,
+case when specification_mix like 'Moisture%' then actual_value
+else 0
+end moisture_val,
+case when specification_mix like 'Protein%' then actual_value
+else 0
+end protin_val
+from input1;
+
+---non_pre_exception-------
+create or replace procedure sp_child_exception as
+child_exc exception;
+pragma exception_init(child_exc,-2292);
+begin
+delete from dept where deptno=10;
+exception 
+when child_exc then
+--dbms_output.put_line('cannot delete parent records');
+--dbms_output.put_line(SQLCODE||','||SQLERRM);
+raise_application_error(-20010,'cannot delete');
+end;
+
+exec sp_child_exception;
+set serveroutput on
+
