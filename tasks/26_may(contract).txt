@@ -1,0 +1,124 @@
+create table cont_tab(
+contract_id number(20),
+contract_type varchar2(40),
+cont_s_date date,
+cont_e_date date,
+cpt_id number(20),
+cont_amt number(20),
+ins_date date,
+upd_date date);
+
+
+
+insert into cont_tab values(12345,'government','10-jan-10','10-jan-11',101,700000,'10-jan-10',null);
+insert into cont_tab values(12879,'government','03-feb-11','15-feb-12',102,489938,'03-feb-11',null);
+insert into cont_tab values(12987,'government','15-feb-11','20-feb-13',103,200000,'15-feb-11',null);
+insert into cont_tab values(12346,'government','01-sep-12','10-feb-13',100,400000,'01-Sep-12','10-apr-13');
+
+create table expd_rcv_tab(exp_rec_id number(4),exp_rec_date date,contract_id number(20),amount number(20));
+
+create table con_pay_terms(cpt_id number(20),freq_of_pmt varchar2(30));
+
+insert into con_pay_terms values(100,'monthly');
+insert into con_pay_terms values(101,'quarterly');
+insert into con_pay_terms values(102,'half yearly');
+insert into con_pay_terms values(103,'yearly');
+
+
+create or replace procedure  sp_contract as
+cursor cur_cont is
+select * from cont_tab;
+v_month number;
+last_date date;
+v_cnt number;
+begin
+for i in cur_cont loop
+    select count(*) into v_cnt
+    from expd_rcv_tab
+    where contract_id=i.contract_id and exp_rec_date=i.cont_s_date;
+v_month:=months_between(i.cont_e_date,i.cont_s_date);
+last_date:=add_months(i.cont_s_date,v_month);
+if v_cnt=0 then
+    if i.cpt_id=101 then
+        while i.cont_s_date<last_date loop
+        insert into expd_rcv_tab values(sq_val5.nextval,i.cont_s_date,i.contract_id,i.cont_amt/4);
+        i.cont_s_date:=add_months(to_char(i.cont_s_date),3);
+        end loop;
+        end if;
+    if i.cpt_id=102 then
+        while i.cont_s_date<last_date loop
+        insert into expd_rcv_tab values(sq_val5.nextval,i.cont_s_date,i.contract_id,i.cont_amt/2);
+        i.cont_s_date:=add_months(to_char(i.cont_s_date),6);
+        end loop;
+        end if;
+if i.cpt_id=103 then
+        while i.cont_s_date<last_date loop
+        insert into expd_rcv_tab values(sq_val5.nextval,i.cont_s_date,i.contract_id,i.cont_amt/2);
+        i.cont_s_date:=add_months(to_char(i.cont_s_date),12);
+        end loop;
+        end if;
+if i.cpt_id=100 then
+        while i.cont_s_date<last_date loop
+        insert into expd_rcv_tab values(sq_val5.nextval,i.cont_s_date,i.contract_id,i.cont_amt/6);
+        i.cont_s_date:=add_months(to_char(i.cont_s_date),1);
+        end loop;
+        end if;
+    end if;
+end loop;
+end;
+        
+        
+exec sp_contract;
+select * from expd_rcv_tab;
+truncate table expd_rcv_tab;
+exec sp_contract;
+
+select add_months(to_char(cont_s_date),3) from cont_tab;
+
+create sequence sq_val5
+start with 11
+increment by 1
+minvalue 0
+maxvalue 100
+cycle;
+
+
+commit;
+
+--------------dynamic sql----------
+
+select COUNT(*) from USER_TABLES
+where TABLE_NAME='EMP';
+
+desc user_tables;
+
+create or replace  procedure sp_dyn(p_table varchar) as
+v_str varchar(100);
+v_cnt int;
+begin  
+v_str:='select count(*) from user_tables where table_name='||''''||p_table||'''';
+dbms_output.put_line(v_str);
+execute immediate v_str into v_cnt;
+dbms_output.put_line(v_cnt);
+end;
+
+
+exec sp_dyn('EMP');
+set serveroutput on
+
+select count(*) from user_tables where table_name='EMP';
+------------------
+----count of colums------
+
+create or replace  procedure sp_dyn(p_table varchar) as
+v_str varchar(100);
+v_cnt int;
+begin  
+v_str:='select count(*) from user_tab_columns where table_name='||''''||upper(p_table)||'''';
+dbms_output.put_line(v_str);
+execute immediate v_str into v_cnt;
+dbms_output.put_line(v_cnt);
+end;
+
+
+exec sp_dyn('emp');
