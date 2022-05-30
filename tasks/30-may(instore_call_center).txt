@@ -1,0 +1,100 @@
+create table instore(cust_id number,cust_name varchar(20),city varchar(20),store_name varchar(20));
+INSERT INTO INSTORE (CUST_ID, CUST_NAME, CITY, STORE_NAME) VALUES ('1', 'TIM', 'BANGALORE', 'COSTA COFEE');
+INSERT INTO INSTORE (CUST_ID, CUST_NAME, CITY, STORE_NAME) VALUES ('2', 'BIM', 'MANGALORE', 'BIG BAZAR');
+INSERT INTO INSTORE (CUST_ID, CUST_NAME, CITY, STORE_NAME) VALUES ('3', 'RICK', 'TEXAS', 'MORE');
+INSERT INTO INSTORE (CUST_ID, CUST_NAME, CITY, STORE_NAME) VALUES ('4', 'SMITH', 'LONDON', 'SHOPER STOP');
+
+create table web_cust(cust_id number,cust_name varchar(20),cust_city varchar(20),email varchar(30),status varchar(20));
+INSERT INTO WEB_CUST (CUST_ID, CUST_NAME, CUST_CITY, EMAIL, STATUS) VALUES ('11', 'RAM', 'KOLAR', 'RAM@GMAIL.COM', 'BOUNCED');
+INSERT INTO WEB_CUST (CUST_ID, CUST_NAME, CUST_CITY, STATUS) VALUES ('12', 'SHAM', 'MYSORE', 'COMPLETED');
+INSERT INTO WEB_CUST (CUST_ID, CUST_NAME, CUST_CITY, EMAIL, STATUS) VALUES ('13', 'SMITHA', 'TEXAS', 'SMITHA@GMAIL.COM', 'COMPLETED');
+INSERT INTO WEB_CUST (CUST_ID, CUST_NAME, CUST_CITY, EMAIL, STATUS) VALUES ('14', 'SMITH', 'LONDON', 'SMITH@YAHOO.COM', 'PROCESSED'); 
+INSERT INTO WEB_CUST (CUST_ID, CUST_NAME, CUST_CITY, EMAIL, STATUS) VALUES ('15', 'TIM', 'BANGALORE', 'TIM@YAHOO.COM', 'PROCESSED'); 
+
+create table call_center_cust(cust_id number,cust_name varchar(20),city varchar(20),rep_name varchar(20),phone number);
+INSERT INTO CALL_CENTER_CUST (CUST_ID, CUST_NAME, CITY, REP_NAME, PHONE) VALUES ('21', 'RAM', 'KOLAR', 'RAJESH', '8876543345');
+INSERT INTO CALL_CENTER_CUST (CUST_ID, CUST_NAME, CITY, REP_NAME, PHONE) VALUES ('22', 'TIM', 'BANGALORE', 'RAMESH', '2323245678');
+INSERT INTO CALL_CENTER_CUST (CUST_ID, CUST_NAME, CITY, REP_NAME) VALUES ('23', 'MICK', 'TEXAS', 'NASREEN');
+INSERT INTO CALL_CENTER_CUST (CUST_ID, CUST_NAME, CITY, REP_NAME, PHONE) VALUES ('24', 'DAVID', 'MAGALORE', 'THRUPA', '4576988999'); 
+
+CREATE TABLE TARGET_TABLE_CUST_DIM(cust_id number,cust_name varchar(20),city varchar(20),email varchar(30),phone number,rep_name varchar(20),SRC_CUST_ID NUMBER,SOURCE VARCHAR(20));
+CREATE TABLE REJECT_CUST_TABLE(REJ_ID NUMBER,SRC_REC VARCHAR(20),REASON VARCHAR(100));
+
+
+create or replace procedure sp_call as
+cursor cur_instore is
+select * from instore ;
+    cursor cur_web_cust is
+    select * from web_cust;
+        cursor cur_call_center_cust is
+        select * from call_center_cust;
+v_cnt number;
+v_cnt1 number;
+begin
+for i in cur_instore loop
+    insert into target_table_cust_dim(cust_id,cust_name,city,source,src_cust_id)values(SEQ_TARGET.NEXTVAL,i.cust_name,i.city,'instore',i.cust_id);
+end loop;
+  for j in cur_web_cust loop
+        select count(*) into v_cnt  
+        from TARGET_TABLE_CUST_DIM
+        where cust_name=j.cust_name and city=j.cust_city;
+            if v_cnt=1 then
+                update TARGET_TABLE_CUST_DIM
+                set email=j.email
+                where cust_name=j.cust_name and city=j.cust_city;
+                elsif j.email is null then
+                     insert into reject_cust_table values(seq_rej.nextval,j.cust_id,'email is null');
+                elsif j.status ='BOUNCED' then
+                    insert into reject_cust_table values(seq_rej.nextval,j.cust_id,'BOUNCED');
+            else
+            insert into target_table_cust_dim (cust_id,cust_name,city,email,source,src_cust_id)values(seq_target.nextval,j.cust_name,j.cust_city,j.email,'web_cust',j.cust_id);
+            end if;
+        end loop;
+            for k in cur_call_center_cust loop
+                select count(*) into v_cnt1
+                from TARGET_TABLE_CUST_DIM
+                where cust_name=k.cust_name and city=k.city;
+                    if v_cnt1=1 then
+                        update TARGET_TABLE_CUST_DIM
+                        set rep_name=k.rep_name ,phone=k.phone
+                        where cust_name=k.cust_name and city=k.city;
+                            elsif k.rep_name is null then  
+                                insert into reject_cust_table values(seq_rej.nextval,k.cust_id,'rep name is null');
+                            elsif k.phone is null then
+                                insert into reject_cust_table values(seq_rej.nextval,k.cust_id,'phone is null');
+            
+                    else
+                    insert into target_table_cust_dim(cust_id,CUST_NAME,CITY,REP_NAME,phone,source,src_cust_id)values
+                    (seq_target.nextval,k.cust_name,k.city,k.rep_name,k.phone,'call_center_cust',k.cust_id);
+                END IF;
+                END LOOP;
+                END;
+
+exec sp_call;
+select cust_id from 
+
+
+select * from  target_table_cust_dim;
+truncate table  target_table_cust_dim;
+truncate table reject_cust_table;
+
+
+select * from reject_cust_table;
+
+        
+CREATE SEQUENCE SEQ_target
+start with 1
+increment by 1
+minvalue 0
+maxvalue 100
+cycle;
+
+
+
+create sequence seq_rej
+start with 20
+increment by 1
+minvalue 20
+maxvalue 100
+cycle;
+
